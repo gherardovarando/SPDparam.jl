@@ -1,0 +1,1 @@
+Exploring SPD parametrizations and corresponding optimization
