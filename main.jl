@@ -1,18 +1,36 @@
 using LinearAlgebra;
 using ForwardDiff;
 
-TOL = 1e-4
-solver = ProximalAlgorithms.ForwardBackward(tol = TOL)
+include("src/prxgrd.jl")
 
-lyap0(B) = lyap(B, 1.0 * Matrix(I, size(B, 1), size(B, 2)))
 
-lam = Float64(0.5)
-g = NormL1(lam)
+####  argmin ||Ax - b||^2 + lambda * sum(abs(x))
+lambda = 10
+A = [ 1.0  -2.0   3.0  -4.0  5.0;
+            2.0  -1.0   0.0  -1.0  3.0;
+           -1.0   0.0   4.0  -3.0  2.0;
+           -1.0  -1.0  -1.0   1.0  3.0]
+b = [1.0, 2.0, 3.0, 4.0]
 
-f = SqrNormL2(1.0)
+function ff(x::Vector)
+        sum((A * x .- b) .^2 )
+end
 
-B0 = -1.0 * Matrix(I, 4, 4)
+function gg(x)
+        lambda * sum(abs.(x))
+end
 
-res = solver(B0, f = f, A = I, g = g)
+df = x -> ForwardDiff.gradient(ff,x)
 
-print(res)
+function pg(x, step)
+         out = sign.(x) .* (abs.(x) .- (step * lambda))
+         out[ abs.(out) .<  step * lambda] .= 0.0
+         out
+end
+
+x0 = zeros(Float64, 5)
+df(x0)
+out = prxgrd(ff,gg,df,pg, x0, 1e-8, 1000)
+out
+ff(out)
+gg(out)
